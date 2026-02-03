@@ -1,0 +1,8 @@
+pandas
+numpy
+minio
+scikit-learn
+joblib
+pyarrow
+fastparquet
+apache-airflow-providers-cncf-kubernetes
