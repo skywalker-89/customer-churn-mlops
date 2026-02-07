@@ -1,6 +1,7 @@
 import pandas as pd
 from minio import Minio
 from io import BytesIO
+import mlflow
 
 # --- CONFIG ---
 MINIO_ENDPOINT = "localhost:9000"
@@ -37,7 +38,7 @@ def run_feature_engineering():
     try:
         df_sessions = read_minio_parquet("website_sessions.parquet")
         df_orders = read_minio_parquet("orders.parquet")
-        # df_pageviews = read_minio_parquet("website_pageviews.parquet") # Optional for advanced
+        df_pageviews = read_minio_parquet("website_pageviews.parquet")
     except Exception as e:
         print(f"❌ Could not verify data in MinIO. Have you run the Airflow DAG yet?\nError: {e}")
         return
@@ -45,13 +46,27 @@ def run_feature_engineering():
     # 2. FEATURE 1 & 2: Traffic Source & Device (Already in sessions)
     print("   Feature 1 (Source) & 2 (Device): Ready.")
     
-    # 3. FEATURE 5: Time of Day (Transform)
-    print("   Feature 5: Extracting Time of Day...")
+    # 3. FEATURE 3: Time of Day (Transform)
+    print("   Feature 3: Extracting Time of Day...")
     df_sessions['created_at'] = pd.to_datetime(df_sessions['created_at'])
     df_sessions['hour_of_day'] = df_sessions['created_at'].dt.hour
     df_sessions['is_weekend'] = df_sessions['created_at'].dt.weekday >= 5
     
-    # 4. MERGE TARGETS (Orders)
+    # 4. FEATURE 4: Landing Page (First page viewed in session)
+    print("   Feature 4: Computing Landing Page...")
+    df_pageviews['created_at'] = pd.to_datetime(df_pageviews['created_at'])
+    # Get the first pageview for each session
+    landing_pages = df_pageviews.sort_values('created_at').groupby('website_session_id').first()['pageview_url'].reset_index()
+    landing_pages.columns = ['website_session_id', 'landing_page']
+    df_sessions = pd.merge(df_sessions, landing_pages, on='website_session_id', how='left')
+    
+    # 5. FEATURE 5: Engagement Depth (Number of pages viewed)
+    print("   Feature 5: Computing Engagement Depth...")
+    engagement = df_pageviews.groupby('website_session_id').size().reset_index(name='engagement_depth')
+    df_sessions = pd.merge(df_sessions, engagement, on='website_session_id', how='left')
+    df_sessions['engagement_depth'] = df_sessions['engagement_depth'].fillna(0).astype(int)
+    
+    # 6. MERGE TARGETS (Orders)
     print("   Merging Targets...")
     df_final = pd.merge(
         df_sessions,
@@ -66,20 +81,24 @@ def run_feature_engineering():
     
     # Select Columns for ML
     features = [
-        'utm_source', 'device_type', 'hour_of_day', 'is_weekend', # Features
-        'is_ordered', 'revenue' # Targets
+        # Raw features from sessions
+        'utm_source', 'device_type', 'is_repeat_session',
+        # Engineered features
+        'hour_of_day', 'is_weekend', 'landing_page', 'engagement_depth',
+        # Targets
+        'is_ordered', 'revenue'
     ]
-    # Note: 'landing_page' and 'engagement_depth' require joining pageviews.
-    # We start with this MVP set to get 5 features (Source, Device, Hour, Weekend, +1 more?)
-    # Let's add 'is_repeat'
-    features.append('is_repeat_session') 
     
     training_data = df_final[features].copy()
     
     # 5. One-Hot Encoding (Preprocessing)
     # ML models usually need numbers, not strings.
     print("   Encoding Categoricals...")
-    training_data = pd.get_dummies(training_data, columns=['utm_source', 'device_type'], drop_first=True)
+    training_data = pd.get_dummies(
+        training_data, 
+        columns=['utm_source', 'device_type', 'landing_page'], 
+        drop_first=True
+    )
     
     # 6. Save Final Matrix
     print("   Saving Training Matrix...")
@@ -95,10 +114,25 @@ def run_feature_engineering():
         content_type="application/octet-stream"
     )
     
+    # 7. LOG TO MLFLOW (Infrastructure Requirement)
+    print("   Logging to MLflow...")
+    mlflow.set_tracking_uri("http://localhost:5001")
+    mlflow.set_experiment("Toy_Store_Feature_Engineering")
+    
+    with mlflow.start_run():
+        mlflow.log_param("source_table", "website_sessions")
+        mlflow.log_metric("rows_processed", len(training_data))
+        mlflow.log_metric("columns_count", len(training_data.columns))
+        mlflow.log_metric("conversion_rate", training_data['is_ordered'].mean())
+        mlflow.log_metric("total_revenue", training_data['revenue'].sum())
+        
+        print(f"   MLflow Run ID: {mlflow.active_run().info.run_id}")
+    
     print("✅ Feature Engineering Complete!")
     print(f"   Saved to s3://{PROCESSED_BUCKET}/training_data.parquet")
     print("   Rows:", len(training_data))
     print("   Columns:", training_data.columns.tolist())
+    print("   Check MLflow at http://localhost:5001")
 
 if __name__ == "__main__":
     run_feature_engineering()
