@@ -1,22 +1,19 @@
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from datetime import datetime
 import pandas as pd
 from minio import Minio
 from io import BytesIO
 import os
-import gc  # <--- NEW: Memory Cleaner
+import gc
 
-# --- Configurations ---
-MINIO_ENDPOINT = "minio:9000"
+# --- Configuration ---
+# Localhost for running outside Docker
+MINIO_ENDPOINT = "localhost:9000"
 ACCESS_KEY = "minio_admin"
 SECRET_KEY = "minio_password"
 BUCKET_NAME = "raw-data"
-SOURCE_FILE = "/opt/airflow/data/raw/alibaba_behavior.txt"
+SOURCE_FILE = "data/raw/alibaba_behavior.txt" # Relative to project root
 
-
-def ingest_data_logic():
-    print("Starting ingestion of Alibaba Data...")
+def ingest_data_manual():
+    print("🚀 Starting MANUAL ingestion of Alibaba Data...")
 
     # 1. Connect to MinIO
     client = Minio(
@@ -25,18 +22,19 @@ def ingest_data_logic():
 
     if not client.bucket_exists(BUCKET_NAME):
         client.make_bucket(BUCKET_NAME)
+        print(f"Created bucket {BUCKET_NAME}")
 
     # 2. Process Data
     chunk_size = 5000
     chunk_counter = 0
 
-    # Read using semi-colon separator
-    try:
-        # Check if file exists first
-        if not os.path.exists(SOURCE_FILE):
-            print(f"ERROR: File not found at {SOURCE_FILE}")
-            return
+    if not os.path.exists(SOURCE_FILE):
+        print(f"❌ ERROR: File not found at {SOURCE_FILE}")
+        return
 
+    print(f"Reading from {SOURCE_FILE}...")
+
+    try:
         for chunk in pd.read_csv(
             SOURCE_FILE,
             sep=";",
@@ -45,7 +43,6 @@ def ingest_data_logic():
             chunksize=chunk_size,
             on_bad_lines="skip",
         ):
-
             df_clean = pd.DataFrame()
 
             # Map columns
@@ -54,7 +51,7 @@ def ingest_data_logic():
             df_clean["purchase_power"] = chunk[4]
             df_clean["is_churn"] = chunk[14]
 
-            # Fix Lists
+            # Fix Lists - Extract Interactions
             def sum_list_string(val):
                 try:
                     return sum([float(i) for i in str(val).split(",") if i.strip()])
@@ -62,7 +59,9 @@ def ingest_data_logic():
                     return 0.0
 
             df_clean["page_value"] = chunk[12].apply(sum_list_string)
-            df_clean["total_clicks"] = chunk[10].apply(sum_list_string)
+            df_clean["click_count"] = chunk[9].apply(sum_list_string) # Col 10: IsClick
+            df_clean["cart_count"] = chunk[10].apply(sum_list_string) # Col 11: IsCart
+            df_clean["fav_count"] = chunk[11].apply(sum_list_string)  # Col 12: IsFav
 
             # Upload to MinIO
             file_name = f"alibaba_chunk_{chunk_counter}.parquet"
@@ -78,34 +77,22 @@ def ingest_data_logic():
                 content_type="application/octet-stream",
             )
 
-            print(f"Uploaded {file_name} with {len(df_clean)} rows.")
+            print(f"✅ Uploaded {file_name} with {len(df_clean)} rows.")
             chunk_counter += 1
+            
+            # Limit for demo/dev speed - Stop after 20 chunks (100k rows)
+            # Remove this break to process full file
+            if chunk_counter >= 20:
+                print("🛑 Stopping after 20 chunks for development speed.")
+                break
 
-            # --- NEW: Force Memory Cleanup ---
+            # Cleanup
             del df_clean
             del parquet_buffer
-            del chunk
             gc.collect()
 
     except Exception as e:
-        print(f"CRITICAL ERROR: {e}")
-        raise e
+        print(f"❌ CRITICAL ERROR: {e}")
 
-
-# --- The DAG Definition (This makes it show up in UI) ---
-default_args = {
-    "owner": "airflow",
-    "start_date": datetime(2024, 1, 1),
-    "retries": 1,
-}
-
-with DAG(
-    "alibaba_ingestion_pipeline",  # <--- This name will show in the UI
-    default_args=default_args,
-    schedule_interval="@once",
-    catchup=False,
-) as dag:
-
-    ingest_task = PythonOperator(
-        task_id="ingest_alibaba_data", python_callable=ingest_data_logic
-    )
+if __name__ == "__main__":
+    ingest_data_manual()
