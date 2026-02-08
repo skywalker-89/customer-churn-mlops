@@ -121,6 +121,8 @@ def process_features():
 
 
 
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+
 # --- DAG Definition ---
 default_args = {
     "owner": "airflow",
@@ -134,7 +136,13 @@ with DAG(
     schedule_interval="@once",
     catchup=False,
 ) as dag:
-
     process_task = PythonOperator(
         task_id="create_rl_features", python_callable=process_features
     )
+
+    trigger_dq_task = TriggerDagRunOperator(
+        task_id="trigger_data_quality",
+        trigger_dag_id="data_quality_validation",
+    )
+
+    process_task >> trigger_dq_task

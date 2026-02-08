@@ -85,8 +85,10 @@ def check_data_freshness():
     from minio import Minio
     from datetime import datetime, timedelta
     
+    import os
+    
     client = Minio(
-        "minio:9000",
+        os.getenv("MINIO_ENDPOINT", "minio:9000"),
         access_key="minio_admin",
         secret_key="minio_password",
         secure=False
@@ -143,8 +145,13 @@ def generate_data_quality_report():
     # Read latest reports (up to 10)
     latest_reports = []
     for report_file in report_files[:10]:
-        with open(report_file, 'r') as f:
-            latest_reports.append(json.load(f))
+        try:
+            with open(report_file, 'r') as f:
+                latest_reports.append(json.load(f))
+        except json.JSONDecodeError as e:
+            print(f"   ⚠️  Skipping corrupted report file {report_file}: {e}")
+        except Exception as e:
+            print(f"   ⚠️  Error reading report file {report_file}: {e}")
     
     # Generate summary
     summary = {
@@ -204,20 +211,6 @@ with DAG(
         python_callable=validate_raw_pageviews
     )
     
-    # Task 5: Wait for feature engineering (if it runs)
-    # This is optional - validates processed data after feature engineering
-    wait_for_feature_engineering = ExternalTaskSensor(
-        task_id="wait_for_feature_engineering",
-        external_dag_id="feature_engineering_pipeline",
-        external_task_id="process_features",
-        mode="reschedule",
-        timeout=3600,  # 1 hour timeout
-        poke_interval=60,  # Check every minute
-        allowed_states=['success'],
-        failed_states=['failed', 'skipped'],
-        execution_delta=timedelta(hours=0),  # Same execution date
-    )
-    
     # Task 6: Validate processed data
     validate_processed = PythonOperator(
         task_id="validate_processed_data",
@@ -234,8 +227,8 @@ with DAG(
     # First check freshness, then validate all raw files in parallel
     freshness_check >> [validate_sessions, validate_orders, validate_pageviews]
     
-    # After raw validation, wait for feature engineering, then validate processed data
-    [validate_sessions, validate_orders, validate_pageviews] >> wait_for_feature_engineering >> validate_processed
+    # After raw validation, validate processed data
+    [validate_sessions, validate_orders, validate_pageviews] >> validate_processed
     
     # Finally generate summary report
     validate_processed >> generate_report

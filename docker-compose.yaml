@@ -43,6 +43,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
+      - ./scripts/init_mlflow_db.sql:/docker-entrypoint-initdb.d/init_mlflow_db.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 5s

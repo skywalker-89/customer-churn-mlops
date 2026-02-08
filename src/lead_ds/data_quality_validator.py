@@ -18,9 +18,10 @@ from io import BytesIO
 from minio import Minio
 import json
 from pathlib import Path
+import os
 
 # --- CONFIG ---
-MINIO_ENDPOINT = "localhost:9000"
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "minio:9000")
 ACCESS_KEY = "minio_admin"
 SECRET_KEY = "minio_password"
 
@@ -377,7 +378,8 @@ class DataQualityValidator:
         Path(output_dir).mkdir(parents=True, exist_ok=True)
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        report_file = f"{output_dir}/validation_report_{timestamp}.json"
+        safe_filename = self.file_name.replace('.', '_').replace('/', '_')
+        report_file = f"{output_dir}/validation_report_{safe_filename}_{timestamp}.json"
         
         with open(report_file, 'w') as f:
             json.dump(self.validation_results, f, indent=2)
