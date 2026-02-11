@@ -27,6 +27,11 @@ def train_classification_model():
     """Train classification model (conversion prediction)"""
     print("🎯 Starting Classification Model Training...")
     
+    # Set environment variables for the trainer to correct connect to services
+    import os
+    os.environ["MINIO_ENDPOINT"] = "minio:9000"
+    os.environ["MLFLOW_TRACKING_URI"] = "http://mlflow:5000"
+    
     from src.classification.train_model import ClassificationModelTrainer
     
     trainer = ClassificationModelTrainer()
@@ -38,10 +43,16 @@ def train_regression_model():
     """Train regression model (revenue prediction)"""
     print("💰 Starting Regression Model Training...")
     
-    from src.regression.train_model import RegressionModelTrainer
+    # Set environment variables for the trainer to correct connect to services
+    import os
+    os.environ["MINIO_ENDPOINT"] = "minio:9000"
+    os.environ["MLFLOW_TRACKING_URI"] = "http://mlflow:5000"
     
+    from src.regression.train_model import RegressionModelTrainer
+
     # You can change strategy here: 'all' or 'converting_only'
-    trainer = RegressionModelTrainer(strategy='converting_only')
+    # Regression model specifically requires 'all' strategy
+    trainer = RegressionModelTrainer(strategy='all')
     trainer.run()
     
     print("✅ Regression model training complete")

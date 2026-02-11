@@ -24,28 +24,30 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_auc_score, f1_score
 import joblib
 
-# --- CONFIG ---
-MINIO_ENDPOINT = "localhost:9000"
-ACCESS_KEY = "minio_admin"
-SECRET_KEY = "minio_password"
-SOURCE_BUCKET = "processed-data"
-MODEL_BUCKET = "models"
-MLFLOW_URI = "http://localhost:5001"
+import os
 
 class ClassificationModelTrainer:
     """Template for classification model training"""
     
     def __init__(self):
+        # --- CONFIG (Loaded at runtime to allow env vars from DAG) ---
+        self.minio_endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
+        self.access_key = os.getenv("MINIO_ACCESS_KEY", "minio_admin")
+        self.secret_key = os.getenv("MINIO_SECRET_KEY", "minio_password")
+        self.source_bucket = os.getenv("SOURCE_BUCKET", "processed-data")
+        self.model_bucket = os.getenv("MODEL_BUCKET", "models")
+        self.mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5001")
+
         self.minio_client = Minio(
-            MINIO_ENDPOINT, access_key=ACCESS_KEY, secret_key=SECRET_KEY, secure=False
+            self.minio_endpoint, access_key=self.access_key, secret_key=self.secret_key, secure=False
         )
-        mlflow.set_tracking_uri(MLFLOW_URI)
+        mlflow.set_tracking_uri(self.mlflow_uri)
         mlflow.set_experiment("Conversion_Prediction_Classification")
     
     def load_data(self):
         """Load training data from MinIO"""
         print("📥 Loading training data...")
-        response = self.minio_client.get_object(SOURCE_BUCKET, "training_data.parquet")
+        response = self.minio_client.get_object(self.source_bucket, "training_data.parquet")
         df = pd.read_parquet(BytesIO(response.read()))
         response.close()
         response.release_conn()
@@ -154,8 +156,8 @@ class ClassificationModelTrainer:
         print(f"\n💾 Saving model to MinIO...")
         
         # Ensure bucket exists
-        if not self.minio_client.bucket_exists(MODEL_BUCKET):
-            self.minio_client.make_bucket(MODEL_BUCKET)
+        if not self.minio_client.bucket_exists(self.model_bucket):
+            self.minio_client.make_bucket(self.model_bucket)
         
         # Serialize model
         buffer = BytesIO()
@@ -164,14 +166,14 @@ class ClassificationModelTrainer:
         
         # Upload
         self.minio_client.put_object(
-            MODEL_BUCKET,
+            self.model_bucket,
             model_name,
             buffer,
             length=buffer.getbuffer().nbytes,
             content_type="application/octet-stream"
         )
         
-        print(f"✅ Model saved to s3://{MODEL_BUCKET}/{model_name}")
+        print(f"✅ Model saved to s3://{self.model_bucket}/{model_name}")
     
     def run(self):
         """Main training pipeline"""
@@ -207,7 +209,7 @@ class ClassificationModelTrainer:
             self.save_model(model)
             
             # 6. Log model path to MLflow
-            mlflow.log_param("model_saved_to", f"s3://{MODEL_BUCKET}/classification_model.pkl")
+            mlflow.log_param("model_saved_to", f"s3://{self.model_bucket}/classification_model.pkl")
             
             print("\n" + "=" * 60)
             print("✅ TRAINING COMPLETE!")
