@@ -39,23 +39,19 @@ def train_classification_model():
     
     print("✅ Classification model training complete")
 
-def train_regression_model():
-    """Train regression model (revenue prediction)"""
-    print("💰 Starting Regression Model Training...")
-    
-    # Set environment variables for the trainer to correct connect to services
+
+
+def run_benchmark():
+    """Run the full regression benchmark (scratch vs library models)"""
+    print("📊 Starting Retail Regression Benchmark...")
     import os
+    # Use docker service names
     os.environ["MINIO_ENDPOINT"] = "minio:9000"
     os.environ["MLFLOW_TRACKING_URI"] = "http://mlflow:5000"
     
-    from src.regression.train_model import RegressionModelTrainer
-
-    # You can change strategy here: 'all' or 'converting_only'
-    # Regression model specifically requires 'all' strategy
-    trainer = RegressionModelTrainer(strategy='all')
-    trainer.run()
-    
-    print("✅ Regression model training complete")
+    from src.regression.retail_regression_benchmark import main
+    main()
+    print("✅ Benchmark complete")
 
 def validate_training_data():
     """Validate that training data exists before training models"""
@@ -81,8 +77,8 @@ def validate_training_data():
         
         print(f"✅ Training data found: {len(df):,} rows, {len(df.columns)} columns")
         
-        # Validate required columns
-        required_cols = ['is_ordered', 'revenue']
+        # Validate required columns for retail dataset
+        required_cols = ['total_sales', 'churned']  # Updated for retail
         missing = [col for col in required_cols if col not in df.columns]
         if missing:
             raise ValueError(f"Missing required columns: {missing}")
@@ -104,7 +100,7 @@ with DAG(
     "model_training_pipeline",
     default_args=default_args,
     description="Train classification and regression models",
-    schedule_interval="@weekly",  # Run weekly or trigger manually
+    schedule_interval="@daily",  # Run weekly or trigger manually
     catchup=False,
     tags=['ml', 'training', 'models'],
 ) as dag:
@@ -121,12 +117,12 @@ with DAG(
         python_callable=train_classification_model
     )
     
-    # Task 3: Train regression model
-    regression_task = PythonOperator(
-        task_id="train_regression_model",
-        python_callable=train_regression_model
+    # Task 3: Run Regression Benchmark (University Requirement - 4 from-scratch models)
+    benchmark_task = PythonOperator(
+        task_id="run_regression_benchmark",
+        python_callable=run_benchmark
     )
     
     # Task dependencies
-    # Both models train in parallel after data validation
-    validate_task >> [classification_task, regression_task]
+    # Classification and Benchmark run in parallel after validation
+    validate_task >> [classification_task, benchmark_task]

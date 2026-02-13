@@ -142,12 +142,10 @@ class DataQualityValidator:
                 'pageview_url': 'object'
             },
             'training_data.parquet': {
-                'is_repeat_session': ['int64', 'bool'],
-                'hour_of_day': 'int64',
-                'is_weekend': ['int64', 'bool'],
-                'engagement_depth': 'int64',
-                'is_ordered': 'int64',
-                'revenue': 'float64'
+                # Retail dataset - only validate that critical targets exist
+                # Don't validate all encoded features since they vary based on categories
+                'total_sales': 'float64',
+                'churned': ['int64', 'bool', 'int32']
             }
         }
         
@@ -221,23 +219,31 @@ class DataQualityValidator:
                 self.validation_results['errors'].append(f"Invalid data: {negative_revenue} negative prices")
                 self.validation_results['passed'] = False
             
-            # Check for unrealistic values (e.g., > $10,000 for a toy store)
+            # Check for unrealistic values
             max_price = df['price_usd'].max()
             if max_price > 10000:
                 self.validation_results['warnings'].append(f"Unusually high price detected: ${max_price:.2f}")
         
-        if 'hour_of_day' in df.columns:
-            invalid_hours = ((df['hour_of_day'] < 0) | (df['hour_of_day'] > 23)).sum()
-            if invalid_hours > 0:
-                range_issues.append(f"Found {invalid_hours} invalid hour values")
-                self.validation_results['errors'].append(f"Invalid data: {invalid_hours} invalid hours (must be 0-23)")
+        # Retail dataset checks
+        if 'total_sales' in df.columns:
+            # Total sales should be positive
+            negative_sales = (df['total_sales'] < 0).sum()
+            if negative_sales > 0:
+                range_issues.append(f"Found {negative_sales} negative total_sales values")
+                self.validation_results['errors'].append(f"Invalid data: {negative_sales} negative total_sales")
                 self.validation_results['passed'] = False
+            
+            # Check for unrealistic values (> $100K seems unreasonable for retail)
+            max_sales = df['total_sales'].max()
+            if max_sales > 100000:
+                self.validation_results['warnings'].append(f"Unusually high total_sales detected: ${max_sales:.2f}")
         
-        if 'engagement_depth' in df.columns:
-            negative_engagement = (df['engagement_depth'] < 0).sum()
-            if negative_engagement > 0:
-                range_issues.append(f"Found {negative_engagement} negative engagement values")
-                self.validation_results['errors'].append(f"Invalid data: {negative_engagement} negative engagement depths")
+        if 'age' in df.columns:
+            # Age should be reasonable (18-120)
+            invalid_age = ((df['age'] < 18) | (df['age'] > 120)).sum()
+            if invalid_age > 0:
+                range_issues.append(f"Found {invalid_age} invalid age values")
+                self.validation_results['errors'].append(f"Invalid data: {invalid_age} ages outside 18-120 range")
                 self.validation_results['passed'] = False
         
         self.validation_results['checks']['data_ranges'] = {

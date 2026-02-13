@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/jul/Desktop/uni/customer-churn-mlops/mlruns/190114157400083967/295c3f409adb49e295e90f752dd0a912/artifacts
+end_time: 1770948856324
+entry_point_name: ''
+experiment_id: '190114157400083967'
+lifecycle_stage: active
+run_id: 295c3f409adb49e295e90f752dd0a912
+run_name: retail_total_sales_prediction
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1770946225263
+status: 4
+tags: []
+user_id: jul
