@@ -17,9 +17,44 @@ from src.models_scratch.polynomial_regression import PolynomialRegressionScratch
 from src.models_scratch.xgboost import XGBoostScratch
 
 # Import sklearn
-from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
 
+
+# ============================================================
+# Model Hyperparameters Configuration
+# ============================================================
+# ⚙️ Adjusted these values to control training duration and performance
+MODEL_CONFIG = {
+    # Simple Linear Regression (y = wx + b)
+    "Linear": {
+        "epochs": 150, 
+        "lr": 0.001,
+        "warm_start_epochs": 0  # Fewer epochs when continuing training
+    },
+    
+    # Multiple Linear Regression (y = w1x1 + ... + wnxn + b)
+    "Multiple": {
+        "epochs": 150, 
+        "lr": 0.0001,
+        "warm_start_epochs": 0
+    },
+    
+    # Polynomial Regression (Degree 2)
+    "Polynomial": {
+        "epochs": 5,       # Fewer epochs because it uses Mini-batch SGD
+        "lr": 0.00001,
+        "warm_start_epochs": 0
+    },
+    
+    # XGBoost (From Scratch) - Gradient Boosting
+    "XGBoost": {
+        "epochs": 50,       # Number of boosting rounds
+        "lr": 0.1,          # Learning rate (shrinkage)
+        "max_depth": 6,     # Tree depth
+        "warm_start_epochs": 0 # 20
+    }
+}
 
 # ============================================================
 # Utility Functions (Metrics + Train/Test Split)
@@ -134,10 +169,13 @@ def train_scratch_models(X_train, y_train, X_test, y_test, feature_names):
     print("=" * 60)
     
     models = [
-        ("Linear", LinearRegressionScratch(), 10000, 0.001),
-        ("Multiple", MultipleRegressionScratch(), 8000, 0.0001),
-        ("Polynomial", PolynomialRegressionScratch(degree=2), 50, 0.00001), # Reduced epochs for SGD
-        ("XGBoost", XGBoostScratch(n_estimators=50, learning_rate=0.1, max_depth=3), 50, 0.1),
+        ("Linear", LinearRegressionScratch(), MODEL_CONFIG["Linear"]["epochs"], MODEL_CONFIG["Linear"]["lr"]),
+        ("Multiple", MultipleRegressionScratch(), MODEL_CONFIG["Multiple"]["epochs"], MODEL_CONFIG["Multiple"]["lr"]),
+        ("Polynomial", PolynomialRegressionScratch(degree=2), MODEL_CONFIG["Polynomial"]["epochs"], MODEL_CONFIG["Polynomial"]["lr"]),
+        ("XGBoost", XGBoostScratch(n_estimators=MODEL_CONFIG["XGBoost"]["epochs"],
+                                   learning_rate=MODEL_CONFIG["XGBoost"]["lr"],
+                                   max_depth=MODEL_CONFIG["XGBoost"]["max_depth"]), 
+         MODEL_CONFIG["XGBoost"]["epochs"], MODEL_CONFIG["XGBoost"]["lr"]),
     ]
     
     results = []
@@ -157,7 +195,13 @@ def train_scratch_models(X_train, y_train, X_test, y_test, feature_names):
                 model = loaded_model
                 print(f"   ✅ Loaded existing model from MinIO: {model_name}")
                 warm_start = True
-                actual_epochs = 1500  # Fewer epochs for incremental
+                actual_epochs = MODEL_CONFIG[name]["warm_start_epochs"]
+                
+                # CRITICAL: Update hyperparameters from current CONFIG (in case user changed them)
+                if name == "XGBoost":
+                    model.learning_rate = MODEL_CONFIG[name]["lr"]
+                    model.max_depth = MODEL_CONFIG[name]["max_depth"]
+                    model.n_estimators += actual_epochs # Increasing total estimators
             else:
                 print(f"   🆕 No existing model found: {model_name} (training from scratch)")
                 warm_start = False
@@ -173,7 +217,7 @@ def train_scratch_models(X_train, y_train, X_test, y_test, feature_names):
             model.fit(X_train, y_train, epochs=actual_epochs, lr=lr, 
                       feature_names=feature_names, warm_start=warm_start, batch_size=4096)
         elif name == "XGBoost":
-            # XGBoost doesn't use batch_size, maps epochs -> n_estimators
+            # XGBoost uses epochs for boosting rounds
             model.fit(X_train, y_train, epochs=actual_epochs, lr=lr,
                       feature_names=feature_names, warm_start=warm_start)
         else:
@@ -211,23 +255,59 @@ def train_scratch_models(X_train, y_train, X_test, y_test, feature_names):
 # Train Sklearn Model
 # ============================================================
 def train_sklearn_model(X_train, y_train, X_test, y_test):
-    """Train Random Forest as benchmark"""
+    """Train XGBoost as benchmark"""
     print("\n" + "=" * 60)
-    print("🌲 TRAINING SKLEARN RANDOM FOREST")
+    print("🚀 TRAINING SKLEARN XGBOOST")
     print("=" * 60)
     
-    model = RandomForestRegressor(
-        n_estimators=50,     # Reduced from 200
-        max_depth=10,        # Reduced from 20
-        min_samples_split=5, # Increased for simpler trees
-        min_samples_leaf=2,  # Increased for simpler trees
-        max_samples=0.5,     # Only train on 50% of data per tree (huge memory saver)
+    model = XGBRegressor(
+        n_estimators=50,    # Number of boosting rounds
+        max_depth=6,         # Tree depth
+        learning_rate=0.1,   # Shrinkage
+        subsample=0.8,       # Row sampling
+        colsample_bytree=0.8, # Column sampling
         random_state=42,
-        n_jobs=2             # Limit parallelism to avoid thread overhead
+        n_jobs=3             # Limit parallelism
     )
     
     print("   Training...")
-    model.fit(X_train, y_train)
+    
+    # MinIO Setup
+    endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
+    access_key = os.getenv("MINIO_ACCESS_KEY", "minio_admin")
+    secret_key = os.getenv("MINIO_SECRET_KEY", "minio_password")
+    bucket_name = "models"
+    client = Minio(endpoint, access_key=access_key, secret_key=secret_key, secure=False)
+    
+    model_name = "xgboost_sklearn"
+    import pickle
+    
+    # Try to load existing model
+    try:
+        response = client.get_object(bucket_name, f"{model_name}_latest.pkl")
+        model = pickle.loads(response.read())
+        print(f"   ✅ Loaded existing Sklearn model from MinIO: {model_name}")
+        response.close()
+        response.release_conn()
+    except Exception as e:
+        print(f"   🆕 No existing model found: {model_name} (training from scratch)")
+        model.fit(X_train, y_train)
+        
+        # Save to MinIO
+        try:
+            model_bytes = pickle.dumps(model)
+            if not client.bucket_exists(bucket_name):
+                client.make_bucket(bucket_name)
+            
+            client.put_object(
+                bucket_name,
+                f"{model_name}_latest.pkl",
+                BytesIO(model_bytes),
+                len(model_bytes)
+            )
+            print(f"   💾 Saved to MinIO: {bucket_name}/{model_name}_latest.pkl")
+        except Exception as save_err:
+            print(f"   ⚠️ Failed to save model to MinIO: {save_err}")
     
     y_pred = model.predict(X_test)
     _rmse = rmse(y_test, y_pred)
@@ -242,7 +322,7 @@ def train_sklearn_model(X_train, y_train, X_test, y_test):
     print(f"      MAPE:  {_mape:.2f}%")
     
     return [{
-        "model": "Random Forest (sklearn)",
+        "model": "XGBoost (sklearn)",
         "rmse": _rmse,
         "mae": _mae,
         "r2": _r2,

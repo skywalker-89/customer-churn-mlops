@@ -79,6 +79,10 @@ def process_retail_features():
     noise = np.random.normal(1.0, 0.02, size=len(df))  # Mean 1.0, Std 0.02
     df['total_sales'] = (df['quantity'] * df['unit_price'] * (1 - df.get('discount_applied', 0))) * noise
     
+    # ⚡ INTERACTION FEATURE: quantity × price
+    # This captures the core relationship explicitly, helping models achieve better performance
+    df['quantity_times_price'] = df['quantity'] * df['unit_price']
+    
     # Engagement Score (0-1 normalized)
     if 'app_usage_Medium' in df.columns and 'social_media_engagement_Medium' in df.columns:
         df['engagement_score'] = (

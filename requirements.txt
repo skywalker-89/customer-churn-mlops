@@ -6,3 +6,5 @@ joblib
 pyarrow
 fastparquet
 apache-airflow-providers-cncf-kubernetes
+xgboost
+mlflow

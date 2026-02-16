@@ -11,9 +11,11 @@ class DecisionNode:
 
 class DecisionTreeScratch:
     """A regression tree that fits to residuals."""
-    def __init__(self, max_depth=3, min_samples_split=2):
+    def __init__(self, max_depth=3, min_samples_split=2, min_samples_leaf=1, max_features="sqrt"):
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
+        self.min_samples_leaf = min_samples_leaf
+        self.max_features = max_features
         self.root = None
 
     def fit(self, X, y):
@@ -49,17 +51,41 @@ class DecisionTreeScratch:
         best_mse = float("inf")
         best_feat, best_thresh = None, None
         
-        # Loop through features (randomly select sqrt(n) features for randomness like RF/XGB)
-        feat_idxs = np.random.choice(n_features, int(np.sqrt(n_features)), replace=False)
+        # Determine number of features to consider
+        if self.max_features == "sqrt":
+            n_consider = int(np.sqrt(n_features))
+        elif self.max_features == "log2":
+            n_consider = int(np.log2(n_features))
+        elif self.max_features == "auto" or self.max_features is None:
+            n_consider = n_features
+        elif isinstance(self.max_features, int):
+            n_consider = min(self.max_features, n_features)
+        elif isinstance(self.max_features, float):
+            n_consider = int(self.max_features * n_features)
+        else:
+            n_consider = n_features
+
+        # Loop through features (randomly select features)
+        feat_idxs = np.random.choice(n_features, n_consider, replace=False)
         
         for feat_idx in feat_idxs:
             thresholds = np.unique(X[:, feat_idx])
             # Don't check every single threshold if there are too many (optimization)
-            if len(thresholds) > 100:
-                thresholds = np.percentile(thresholds, np.linspace(0, 100, 30))
+            if len(thresholds) > 300:
+                thresholds = np.percentile(thresholds, np.linspace(0, 100, 100))
                 
             for thresh in thresholds:
                 left_idxs = X[:, feat_idx] < thresh
+                
+                # Check min_samples_leaf constraint
+                if len(y[left_idxs]) < self.min_samples_leaf or len(y[~left_idxs]) < self.min_samples_leaf:
+                    continue
+                    
+                mse = self._calculate_mse(y, left_idxs)
+                if mse < best_mse:
+                    best_mse = mse
+                    best_feat = feat_idx
+                    best_thresh = thresh
                 if len(y[left_idxs]) == 0 or len(y[~left_idxs]) == 0:
                     continue
                     
