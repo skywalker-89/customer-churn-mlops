@@ -41,7 +41,7 @@ def train_classification_model():
 
 
 
-def run_benchmark():
+def run_regression_benchmark():
     """Run the full regression benchmark (scratch vs library models)"""
     print("📊 Starting Retail Regression Benchmark...")
     import os
@@ -51,7 +51,20 @@ def run_benchmark():
     
     from src.regression.retail_regression_benchmark import main
     main()
-    print("✅ Benchmark complete")
+    print("✅ Regression Benchmark complete")
+
+
+def run_classification_benchmark():
+    """Run the full classification benchmark (scratch vs library models)"""
+    print("🎯 Starting Retail Classification Benchmark...")
+    import os
+    # Use docker service names
+    os.environ["MINIO_ENDPOINT"] = "minio:9000"
+    os.environ["MLFLOW_TRACKING_URI"] = "http://mlflow:5000"
+    
+    from src.classification.retail_classification_benchmark import main
+    main()
+    print("✅ Classification Benchmark complete")
 
 def validate_training_data():
     """Validate that training data exists before training models"""
@@ -111,18 +124,25 @@ with DAG(
         python_callable=validate_training_data
     )
     
-    # Task 2: Train classification model
+    # Task 2: Train classification model (Old - kept for compatibility)
     classification_task = PythonOperator(
         task_id="train_classification_model",
         python_callable=train_classification_model
     )
     
-    # Task 3: Run Regression Benchmark (University Requirement - 4 from-scratch models)
-    benchmark_task = PythonOperator(
+    # Task 3: Run Regression Benchmark (University Requirement - from-scratch models)
+    regression_benchmark_task = PythonOperator(
         task_id="run_regression_benchmark",
-        python_callable=run_benchmark
+        python_callable=run_regression_benchmark
+    )
+    
+    # Task 4: Run Classification Benchmark (University Requirement - from-scratch models)
+    classification_benchmark_task = PythonOperator(
+        task_id="run_classification_benchmark",
+        python_callable=run_classification_benchmark
     )
     
     # Task dependencies
-    # Classification and Benchmark run in parallel after validation
-    validate_task >> [classification_task, benchmark_task]
+    # All benchmarks run in parallel after validation
+    validate_task >> [classification_task, regression_benchmark_task, classification_benchmark_task]
+
