@@ -14,26 +14,31 @@ This project addresses a critical business challenge in retail analytics: predic
 ### Key Features (70+ attributes across 6 categories):
 
 1. **Customer Demographics** (5 features)
+
    - Age, gender, marital status, education level, occupation
    - Income bracket, number of children, zip code/city/state
 
 2. **Customer Behavior** (8 features)
+
    - Loyalty program membership, membership years
    - Purchase frequency, average purchase value
    - Days since last purchase, total transactions
    - Online vs in-store purchase patterns
 
 3. **Transaction History** (12 features)
+
    - Transaction dates, product categories, quantities
    - Unit prices, discount applications, payment methods
    - Store locations, transaction timing patterns
 
 4. **Product Analytics** (15 features)
+
    - Product ratings, review counts, stock levels
    - Return rates, product characteristics (size, weight, color, material)
    - Shelf life, manufacture/expiry dates
 
 5. **Marketing & Promotions** (8 features)
+
    - Promotion types, effectiveness metrics
    - Target audience segmentation, promotional channels
    - Seasonal and holiday patterns
@@ -45,22 +50,26 @@ This project addresses a critical business challenge in retail analytics: predic
 ## 🎯 Problem Definition
 
 ### Problem 1: Customer Churn Prediction (Classification)
+
 **Target Variable**: `churned` (Binary: 0 = Retained, 1 = Churned)  
 **Business Impact**: Customer retention is 5-25x cheaper than acquisition  
 **Success Metric**: F1-Score (balances precision/recall for imbalanced data)
 
-**Why This Matters**: 
+**Why This Matters**:
+
 - Identify at-risk customers before they leave
 - Enable proactive retention campaigns
 - Reduce customer acquisition costs
 - Maintain revenue stability
 
 ### Problem 2: Customer Lifetime Value Prediction (Regression)
+
 **Target Variable**: `total_sales` (Continuous: Total customer spending)  
 **Business Impact**: Optimize marketing spend allocation  
 **Success Metric**: RMSE and R² (prediction accuracy and variance explained)
 
 **Why This Matters**:
+
 - Predict future revenue from customers
 - Segment customers by value potential
 - Optimize resource allocation
@@ -69,6 +78,7 @@ This project addresses a critical business challenge in retail analytics: predic
 ## 🏗️ Model Requirements
 
 ### Classification Models (11 from-scratch implementations):
+
 1. **Logistic Regression** - Baseline binary classifier
 2. **Decision Tree** - Interpretable rule-based model
 3. **Random Forest** - Ensemble of decision trees
@@ -82,6 +92,7 @@ This project addresses a critical business challenge in retail analytics: predic
 11. **Custom Model** - Naive Bayes (outside classroom curriculum)
 
 ### Regression Models (4 from-scratch implementations):
+
 1. **Linear Regression** - Basic relationship modeling
 2. **Multiple Regression** - Multi-feature linear model
 3. **Polynomial Regression** - Non-linear relationship capture
@@ -90,6 +101,7 @@ This project addresses a critical business challenge in retail analytics: predic
 ## 🔍 Feature Engineering Strategy
 
 **Primary Transformations**:
+
 - **Interaction Features**: Quantity × Unit Price = Total Transaction Value
 - **Temporal Features**: Recency, frequency, monetary (RFM) analysis
 - **Aggregation Features**: Customer-level statistics across transactions
@@ -97,6 +109,7 @@ This project addresses a critical business challenge in retail analytics: predic
 - **Scaling**: Numerical feature normalization
 
 **Feature Selection**:
+
 - Correlation analysis for multicollinearity
 - Feature importance from tree-based models
 - Domain knowledge-based selection
@@ -104,11 +117,13 @@ This project addresses a critical business challenge in retail analytics: predic
 ## 📈 Success Metrics & Evaluation
 
 ### Classification Metrics:
+
 - **Primary**: F1-Score (harmonic mean of precision/recall)
 - **Secondary**: Accuracy, Precision, Recall, AUC-ROC
 - **Business**: Cost savings from retention campaigns
 
 ### Regression Metrics:
+
 - **Primary**: RMSE (Root Mean Square Error)
 - **Secondary**: R², MAE (Mean Absolute Error)
 - **Business**: Revenue prediction accuracy
@@ -116,12 +131,14 @@ This project addresses a critical business challenge in retail analytics: predic
 ## 🚀 Business Impact & Applications
 
 ### Immediate Applications:
+
 1. **Customer Retention**: Target at-risk customers with personalized offers
 2. **Marketing Optimization**: Allocate budget to high-value customer segments
 3. **Inventory Management**: Predict demand based on customer value predictions
 4. **Pricing Strategy**: Dynamic pricing for different customer segments
 
 ### Long-term Benefits:
+
 - **Revenue Growth**: 5-10% increase through better retention
 - **Cost Reduction**: 15-20% decrease in customer acquisition costs
 - **Customer Satisfaction**: Personalized experiences improve loyalty
@@ -132,19 +149,11 @@ This project addresses a critical business challenge in retail analytics: predic
 **Infrastructure**: MLOps pipeline with Airflow orchestration  
 **Storage**: MinIO for data and model artifacts  
 **Tracking**: MLflow for experiment management  
-**Deployment**: Containerized microservices architecture  
+**Deployment**: Containerized microservices architecture
 
 **Model Comparison**: Fair benchmarking with identical train/test splits, feature sets, and evaluation criteria between from-scratch and library implementations.
 
-## 📋 Project Timeline
-
-- **Phase 1** (Week 1-2): Data exploration and feature engineering
-- **Phase 2** (Week 3-4): Regression model development and benchmarking
-- **Phase 3** (Week 5-6): Classification model development and benchmarking
-- **Phase 4** (Week 7-8): Model optimization and deployment preparation
-- **Phase 5** (Week 9): Final presentation and documentation
-
-## 🎯 Expected Outcomes
+## 🎯 Expected Outcomess
 
 1. **Production-ready models** for both regression and classification tasks
 2. **Comprehensive comparison** between from-scratch and library implementations
