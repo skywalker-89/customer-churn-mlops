@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/Lenovo/Downloads/customer-churn-mlops/mlruns/777287281093018129/f1e32161a54f4665ad4baebdba377a23/artifacts
+end_time: 1771521101481
+entry_point_name: ''
+experiment_id: '777287281093018129'
+lifecycle_stage: active
+run_id: f1e32161a54f4665ad4baebdba377a23
+run_name: retail_customer_churn_prediction
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1771520470222
+status: 3
+tags: []
+user_id: Lenovo

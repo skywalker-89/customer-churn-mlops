@@ -113,7 +113,7 @@ with DAG(
     "model_training_pipeline",
     default_args=default_args,
     description="Train classification and regression models",
-    schedule_interval="@hourly",  # Run weekly or trigger manually
+    schedule_interval="@weekly",  # Run weekly or trigger manually
     catchup=False,
     tags=['ml', 'training', 'models'],
 ) as dag:
