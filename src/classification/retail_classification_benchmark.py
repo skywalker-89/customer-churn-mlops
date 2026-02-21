@@ -36,6 +36,7 @@ SKLEARN COMPARISON:
 ===================
 Pick ONE model from sklearn to benchmark against (e.g., RandomForestClassifier, XGBoost)
 """
+
 import os
 import numpy as np
 import pandas as pd
@@ -75,86 +76,65 @@ from sklearn.model_selection import train_test_split
 # ============================================================
 # ⚙️ Model Hyperparameters Configuration
 # ============================================================
+# 100 epochs
 MODEL_CONFIG = {
-    "LogisticRegression": {
-        "epochs": 100,
-        "lr": 0.01,
-        "warm_start_epochs": 20
-    },
-
+    "LogisticRegression": {"epochs": 100, "lr": 0.01, "warm_start_epochs": 20},
     "DecisionTree": {
         "epochs": 100,
         "max_depth": 10,
         "min_samples_split": 20,
-        "warm_start_epochs": 0
+        "warm_start_epochs": 0,
     },
-
     "RandomForest": {
         "epochs": 100,
         "n_estimators": 50,
         "max_depth": 10,
         "min_samples_split": 20,
-        "warm_start_epochs": 0
+        "warm_start_epochs": 0,
     },
-
     "SVM": {
         "epochs": 100,
         "lr": 0.001,
         "C": 1.0,
         "kernel": "linear",
-        "warm_start_epochs": 20
+        "warm_start_epochs": 20,
     },
-
     "RandomForestPCA": {
         "epochs": 100,
         "n_components": 10,
         "n_estimators": 50,
         "max_depth": 10,
-        "warm_start_epochs": 0
+        "warm_start_epochs": 0,
     },
-
     "SVMPCA": {
         "n_components": 10,
         "epochs": 100,
         "lr": 0.001,
         "C": 1.0,
         "kernel": "linear",
-        "warm_start_epochs": 20
+        "warm_start_epochs": 20,
     },
-
     "KMeans": {
         "epochs": 100,
         "n_clusters": 2,
         "max_iters": 100,
-        "warm_start_epochs": 0
+        "warm_start_epochs": 0,
     },
-
     "AgglomerativeClustering": {
         "epochs": 100,
         "n_clusters": 2,
         "linkage": "ward",
-        "warm_start_epochs": 0
+        "warm_start_epochs": 0,
     },
-
-    "Perceptron": {
-        "epochs": 100,
-        "lr": 0.01,
-        "warm_start_epochs": 20
-    },
-
+    "Perceptron": {"epochs": 100, "lr": 0.01, "warm_start_epochs": 20},
     "MLP": {
         "epochs": 100,
         "lr": 0.001,
         "hidden_layers": [64, 32],
         "activation": "relu",
-        "warm_start_epochs": 20
+        "warm_start_epochs": 20,
     },
-
-    "CustomModel": {
-        "epochs": 100,
-        "lr": 0.01,
-        "warm_start_epochs": 20
-    }
+    "CustomModel": {"epochs": 100, "lr": 0.01, "warm_start_epochs": 20},
 }
 
 
@@ -203,10 +183,7 @@ def confusion_matrix(y_true, y_pred):
     fp = np.sum((y_true == 0) & (y_pred == 1))
     fn = np.sum((y_true == 1) & (y_pred == 0))
     tp = np.sum((y_true == 1) & (y_pred == 1))
-    return {
-        "TN": int(tn), "FP": int(fp),
-        "FN": int(fn), "TP": int(tp)
-    }
+    return {"TN": int(tn), "FP": int(fp), "FN": int(fn), "TP": int(tp)}
 
 
 print("=" * 60)
@@ -245,7 +222,7 @@ def load_retail_data(sample_size=None):
         print(f"   Using {len(df):,} rows for training")
 
     drop_cols = ["total_sales", "churned", "clv_per_year"]
-    X_df = df.drop(columns=drop_cols, errors='ignore')
+    X_df = df.drop(columns=drop_cols, errors="ignore")
     X_df = X_df.select_dtypes(include=[np.number])
 
     y = df["churned"].values.astype(np.int32)
@@ -276,88 +253,99 @@ def train_scratch_models(X_train, y_train, X_test, y_test, feature_names):
     print("=" * 60)
 
     models = [
-        ("LogisticRegression",
-         LogisticRegressionScratch(),
-         MODEL_CONFIG["LogisticRegression"]["epochs"],
-         MODEL_CONFIG["LogisticRegression"]["lr"]),
-
-        ("DecisionTree",
-         DecisionTreeScratch(
-             max_depth=MODEL_CONFIG["DecisionTree"]["max_depth"],
-             min_samples_split=MODEL_CONFIG["DecisionTree"]["min_samples_split"]
-         ),
-         MODEL_CONFIG["DecisionTree"]["epochs"],
-         0.0),
-
-        ("RandomForest",
-         RandomForestScratch(
-             n_estimators=MODEL_CONFIG["RandomForest"]["n_estimators"],
-             max_depth=MODEL_CONFIG["RandomForest"]["max_depth"],
-             min_samples_split=MODEL_CONFIG["RandomForest"]["min_samples_split"]
-         ),
-         MODEL_CONFIG["RandomForest"]["epochs"],
-         0.0),
-
-        ("SVM",
-         SVMScratch(
-             C=MODEL_CONFIG["SVM"]["C"],
-             kernel=MODEL_CONFIG["SVM"]["kernel"]
-         ),
-         MODEL_CONFIG["SVM"]["epochs"],
-         MODEL_CONFIG["SVM"]["lr"]),
-
-        ("RandomForestPCA",
-         RandomForestPCAScratch(
-             n_components=MODEL_CONFIG["RandomForestPCA"]["n_components"],
-             n_estimators=MODEL_CONFIG["RandomForestPCA"]["n_estimators"],
-             max_depth=MODEL_CONFIG["RandomForestPCA"]["max_depth"]
-         ),
-         MODEL_CONFIG["RandomForestPCA"]["epochs"],
-         0.0),
-
-        ("SVMPCA",
-         SVMPCAScratch(
-             n_components=MODEL_CONFIG["SVMPCA"]["n_components"],
-             C=MODEL_CONFIG["SVMPCA"]["C"],
-             kernel=MODEL_CONFIG["SVMPCA"]["kernel"]
-         ),
-         MODEL_CONFIG["SVMPCA"]["epochs"],
-         MODEL_CONFIG["SVMPCA"]["lr"]),
-
-        ("KMeans",
-         KMeansScratch(
-             n_clusters=MODEL_CONFIG["KMeans"]["n_clusters"],
-             max_iters=MODEL_CONFIG["KMeans"]["max_iters"]
-         ),
-         MODEL_CONFIG["KMeans"]["epochs"],
-         0.0),
-
-        ("AgglomerativeClustering",
-         AgglomerativeClusteringScratch(
-             n_clusters=MODEL_CONFIG["AgglomerativeClustering"]["n_clusters"],
-             linkage=MODEL_CONFIG["AgglomerativeClustering"]["linkage"],
-             sample_size=300
-         ),
-         MODEL_CONFIG["AgglomerativeClustering"]["epochs"],
-         0.0),
-
-        ("Perceptron",
-         PerceptronScratch(),
-         MODEL_CONFIG["Perceptron"]["epochs"],
-         MODEL_CONFIG["Perceptron"]["lr"]),
-
-        ("MLP",
-         MLPScratch(
-             hidden_layers=MODEL_CONFIG["MLP"]["hidden_layers"],
-             activation=MODEL_CONFIG["MLP"]["activation"]
-         ),
-         MODEL_CONFIG["MLP"]["epochs"],
-         MODEL_CONFIG["MLP"]["lr"]),
-
-        ("CustomModel",
-         CustomModelScratch(),
-         MODEL_CONFIG["CustomModel"]["epochs"],
-         MODEL_CONFIG["CustomModel"]["lr"]),
+        (
+            "LogisticRegression",
+            LogisticRegressionScratch(),
+            MODEL_CONFIG["LogisticRegression"]["epochs"],
+            MODEL_CONFIG["LogisticRegression"]["lr"],
+        ),
+        (
+            "DecisionTree",
+            DecisionTreeScratch(
+                max_depth=MODEL_CONFIG["DecisionTree"]["max_depth"],
+                min_samples_split=MODEL_CONFIG["DecisionTree"]["min_samples_split"],
+            ),
+            MODEL_CONFIG["DecisionTree"]["epochs"],
+            0.0,
+        ),
+        (
+            "RandomForest",
+            RandomForestScratch(
+                n_estimators=MODEL_CONFIG["RandomForest"]["n_estimators"],
+                max_depth=MODEL_CONFIG["RandomForest"]["max_depth"],
+                min_samples_split=MODEL_CONFIG["RandomForest"]["min_samples_split"],
+            ),
+            MODEL_CONFIG["RandomForest"]["epochs"],
+            0.0,
+        ),
+        (
+            "SVM",
+            SVMScratch(
+                C=MODEL_CONFIG["SVM"]["C"], kernel=MODEL_CONFIG["SVM"]["kernel"]
+            ),
+            MODEL_CONFIG["SVM"]["epochs"],
+            MODEL_CONFIG["SVM"]["lr"],
+        ),
+        (
+            "RandomForestPCA",
+            RandomForestPCAScratch(
+                n_components=MODEL_CONFIG["RandomForestPCA"]["n_components"],
+                n_estimators=MODEL_CONFIG["RandomForestPCA"]["n_estimators"],
+                max_depth=MODEL_CONFIG["RandomForestPCA"]["max_depth"],
+            ),
+            MODEL_CONFIG["RandomForestPCA"]["epochs"],
+            0.0,
+        ),
+        (
+            "SVMPCA",
+            SVMPCAScratch(
+                n_components=MODEL_CONFIG["SVMPCA"]["n_components"],
+                C=MODEL_CONFIG["SVMPCA"]["C"],
+                kernel=MODEL_CONFIG["SVMPCA"]["kernel"],
+            ),
+            MODEL_CONFIG["SVMPCA"]["epochs"],
+            MODEL_CONFIG["SVMPCA"]["lr"],
+        ),
+        (
+            "KMeans",
+            KMeansScratch(
+                n_clusters=MODEL_CONFIG["KMeans"]["n_clusters"],
+                max_iters=MODEL_CONFIG["KMeans"]["max_iters"],
+            ),
+            MODEL_CONFIG["KMeans"]["epochs"],
+            0.0,
+        ),
+        (
+            "AgglomerativeClustering",
+            AgglomerativeClusteringScratch(
+                n_clusters=MODEL_CONFIG["AgglomerativeClustering"]["n_clusters"],
+                linkage=MODEL_CONFIG["AgglomerativeClustering"]["linkage"],
+                sample_size=300,
+            ),
+            MODEL_CONFIG["AgglomerativeClustering"]["epochs"],
+            0.0,
+        ),
+        (
+            "Perceptron",
+            PerceptronScratch(),
+            MODEL_CONFIG["Perceptron"]["epochs"],
+            MODEL_CONFIG["Perceptron"]["lr"],
+        ),
+        (
+            "MLP",
+            MLPScratch(
+                hidden_layers=MODEL_CONFIG["MLP"]["hidden_layers"],
+                activation=MODEL_CONFIG["MLP"]["activation"],
+            ),
+            MODEL_CONFIG["MLP"]["epochs"],
+            MODEL_CONFIG["MLP"]["lr"],
+        ),
+        (
+            "CustomModel",
+            CustomModelScratch(),
+            MODEL_CONFIG["CustomModel"]["epochs"],
+            MODEL_CONFIG["CustomModel"]["lr"],
+        ),
     ]
 
     results = []
@@ -377,7 +365,9 @@ def train_scratch_models(X_train, y_train, X_test, y_test, feature_names):
                 print(f"   ✅ Loaded existing model from MinIO: {model_name}")
                 warm_start = True
             else:
-                print(f"   🆕 No existing model found: {model_name} (training from scratch)")
+                print(
+                    f"   🆕 No existing model found: {model_name} (training from scratch)"
+                )
                 warm_start = False
         except Exception as e:
             print(f"   🆕 Error loading model: {e} (training from scratch)")
@@ -387,17 +377,20 @@ def train_scratch_models(X_train, y_train, X_test, y_test, feature_names):
         actual_epochs = int(epochs)
 
         model.fit(
-            X_train, y_train,
+            X_train,
+            y_train,
             epochs=actual_epochs,
             lr=lr,
             feature_names=feature_names,
-            warm_start=warm_start
+            warm_start=warm_start,
         )
 
         model.save_to_minio(model_name)
 
         y_pred = model.predict(X_test)
-        y_pred = (y_pred > 0.5).astype(np.int32) if y_pred.dtype == np.float64 else y_pred
+        y_pred = (
+            (y_pred > 0.5).astype(np.int32) if y_pred.dtype == np.float64 else y_pred
+        )
 
         _accuracy = accuracy(y_test, y_pred)
         _precision = precision(y_test, y_pred)
@@ -410,16 +403,20 @@ def train_scratch_models(X_train, y_train, X_test, y_test, feature_names):
         print(f"      Precision: {_precision:.4f}")
         print(f"      Recall:    {_recall:.4f}")
         print(f"      F1 Score:  {_f1:.4f}")
-        print(f"      Confusion Matrix: TN={_cm['TN']}, FP={_cm['FP']}, FN={_cm['FN']}, TP={_cm['TP']}")
+        print(
+            f"      Confusion Matrix: TN={_cm['TN']}, FP={_cm['FP']}, FN={_cm['FN']}, TP={_cm['TP']}"
+        )
 
-        results.append({
-            "model": f"{name} (scratch)",
-            "accuracy": _accuracy,
-            "precision": _precision,
-            "recall": _recall,
-            "f1_score": _f1,
-            "confusion_matrix": _cm
-        })
+        results.append(
+            {
+                "model": f"{name} (scratch)",
+                "accuracy": _accuracy,
+                "precision": _precision,
+                "recall": _recall,
+                "f1_score": _f1,
+                "confusion_matrix": _cm,
+            }
+        )
 
     return results
 
@@ -439,11 +436,9 @@ def train_sklearn_model(X_train, y_train, X_test, y_test):
     # 🔧 CONFIGURE YOUR SKLEARN MODEL HERE
     # ============================================================
     from sklearn.ensemble import RandomForestClassifier
+
     model = RandomForestClassifier(
-        n_estimators=200,
-        max_depth=10,
-        random_state=42,
-        n_jobs=3
+        n_estimators=200, max_depth=10, random_state=42, n_jobs=3
     )
     model_name = "random_forest_sklearn"
 
@@ -474,7 +469,7 @@ def train_sklearn_model(X_train, y_train, X_test, y_test):
                 bucket_name,
                 f"{model_name}_latest.pkl",
                 BytesIO(model_bytes),
-                len(model_bytes)
+                len(model_bytes),
             )
             print(f"   💾 Saved to MinIO: {bucket_name}/{model_name}_latest.pkl")
         except Exception as save_err:
@@ -493,16 +488,20 @@ def train_sklearn_model(X_train, y_train, X_test, y_test):
     print(f"      Precision: {_precision:.4f}")
     print(f"      Recall:    {_recall:.4f}")
     print(f"      F1 Score:  {_f1:.4f}")
-    print(f"      Confusion Matrix: TN={_cm['TN']}, FP={_cm['FP']}, FN={_cm['FN']}, TP={_cm['TP']}")
+    print(
+        f"      Confusion Matrix: TN={_cm['TN']}, FP={_cm['FP']}, FN={_cm['FN']}, TP={_cm['TP']}"
+    )
 
-    return [{
-        "model": f"{model_name.replace('_', ' ').title()} (sklearn)",
-        "accuracy": _accuracy,
-        "precision": _precision,
-        "recall": _recall,
-        "f1_score": _f1,
-        "confusion_matrix": _cm
-    }]
+    return [
+        {
+            "model": f"{model_name.replace('_', ' ').title()} (sklearn)",
+            "accuracy": _accuracy,
+            "precision": _precision,
+            "recall": _recall,
+            "f1_score": _f1,
+            "confusion_matrix": _cm,
+        }
+    ]
 
 
 # ============================================================
@@ -522,7 +521,9 @@ def main():
         print(f"   Train: {len(y_train):,} samples")
         print(f"   Test:  {len(y_test):,} samples")
 
-        scratch_results = train_scratch_models(X_train, y_train, X_test, y_test, feature_names)
+        scratch_results = train_scratch_models(
+            X_train, y_train, X_test, y_test, feature_names
+        )
         sklearn_results = train_sklearn_model(X_train, y_train, X_test, y_test)
 
         all_results = scratch_results + sklearn_results
@@ -534,25 +535,37 @@ def main():
         print("\n" + "=" * 60)
         print("📊 FINAL COMPARISON")
         print("=" * 60)
-        df_results = pd.DataFrame([
-            {k: v for k, v in r.items() if k != "confusion_matrix"}
-            for r in all_results
-        ])
+        df_results = pd.DataFrame(
+            [
+                {k: v for k, v in r.items() if k != "confusion_matrix"}
+                for r in all_results
+            ]
+        )
         print(df_results.to_string(index=False))
 
         for result in all_results:
-            clean_name = result['model'].replace(" ", "_").replace("(", "").replace(")", "").lower()
+            clean_name = (
+                result["model"]
+                .replace(" ", "_")
+                .replace("(", "")
+                .replace(")", "")
+                .lower()
+            )
             metric_prefix = f"{clean_name}"
 
-            mlflow.log_metrics({
-                f"{metric_prefix}_accuracy": result['accuracy'],
-                f"{metric_prefix}_precision": result['precision'],
-                f"{metric_prefix}_recall": result['recall'],
-                f"{metric_prefix}_f1_score": result['f1_score'],
-            })
+            mlflow.log_metrics(
+                {
+                    f"{metric_prefix}_accuracy": result["accuracy"],
+                    f"{metric_prefix}_precision": result["precision"],
+                    f"{metric_prefix}_recall": result["recall"],
+                    f"{metric_prefix}_f1_score": result["f1_score"],
+                }
+            )
 
         print("\n✅ Benchmark complete!")
-        print(f"   Best F1 Score: {df_results['f1_score'].max():.4f} ({df_results.loc[df_results['f1_score'].idxmax(), 'model']})")
+        print(
+            f"   Best F1 Score: {df_results['f1_score'].max():.4f} ({df_results.loc[df_results['f1_score'].idxmax(), 'model']})"
+        )
 
 
 if __name__ == "__main__":
