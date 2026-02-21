@@ -78,29 +78,29 @@ from sklearn.model_selection import train_test_split
 # ============================================================
 # 100 epochs
 MODEL_CONFIG = {
-    "LogisticRegression": {"epochs": 100, "lr": 0.01, "warm_start_epochs": 20},
+    "LogisticRegression": {"epochs": 0, "lr": 0.01, "warm_start_epochs": 20},
     "DecisionTree": {
-        "epochs": 100,
+        "epochs": 0,
         "max_depth": 10,
         "min_samples_split": 20,
         "warm_start_epochs": 0,
     },
     "RandomForest": {
-        "epochs": 100,
+        "epochs": 0,
         "n_estimators": 50,
         "max_depth": 10,
         "min_samples_split": 20,
         "warm_start_epochs": 0,
     },
     "SVM": {
-        "epochs": 100,
+        "epochs": 0,
         "lr": 0.001,
         "C": 1.0,
         "kernel": "linear",
         "warm_start_epochs": 20,
     },
     "RandomForestPCA": {
-        "epochs": 100,
+        "epochs": 0,
         "n_components": 10,
         "n_estimators": 50,
         "max_depth": 10,
@@ -108,33 +108,33 @@ MODEL_CONFIG = {
     },
     "SVMPCA": {
         "n_components": 10,
-        "epochs": 100,
+        "epochs": 0,
         "lr": 0.001,
         "C": 1.0,
         "kernel": "linear",
         "warm_start_epochs": 20,
     },
     "KMeans": {
-        "epochs": 100,
+        "epochs": 0,
         "n_clusters": 2,
         "max_iters": 100,
         "warm_start_epochs": 0,
     },
     "AgglomerativeClustering": {
-        "epochs": 100,
+        "epochs": 0,
         "n_clusters": 2,
         "linkage": "ward",
         "warm_start_epochs": 0,
     },
-    "Perceptron": {"epochs": 100, "lr": 0.01, "warm_start_epochs": 20},
+    "Perceptron": {"epochs": 0, "lr": 0.01, "warm_start_epochs": 20},
     "MLP": {
-        "epochs": 100,
+        "epochs": 0,
         "lr": 0.001,
         "hidden_layers": [64, 32],
         "activation": "relu",
         "warm_start_epochs": 20,
     },
-    "CustomModel": {"epochs": 100, "lr": 0.01, "warm_start_epochs": 20},
+    "CustomModel": {"epochs": 0, "lr": 0.01, "warm_start_epochs": 20},
 }
 
 
