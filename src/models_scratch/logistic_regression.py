@@ -36,3 +36,14 @@ class LogisticRegressionScratch(BaseModel):
         Xp = self._prep_transform(X, standardize=self.standardize)
         p = self._sigmoid(Xp @ self.weights + self.bias)
         return (p >= 0.5).astype(np.int32)
+
+    def predict_proba(self, X):
+        """
+        Return probability estimates for the test data X.
+        Returns a list of probabilities for the positive class (churn).
+        Format matches sklearn: array of shape (n_samples, 2)
+        """
+        Xp = self._prep_transform(X, standardize=self.standardize)
+        p = self._sigmoid(Xp @ self.weights + self.bias)
+        # Return [prob_0, prob_1] for each sample
+        return np.column_stack((1 - p, p))

@@ -28,31 +28,31 @@ from sklearn.model_selection import train_test_split
 MODEL_CONFIG = {
     # Simple Linear Regression (y = wx + b)
     "Linear": {
-        "epochs": 0, #150
+        "epochs": 150, #150
         "lr": 0.001,
-        "warm_start_epochs": 0  # Fewer epochs when continuing training
+        "warm_start_epochs": 20  # Fewer epochs when continuing training
     },
     
     # Multiple Linear Regression (y = w1x1 + ... + wnxn + b)
     "Multiple": {
-        "epochs": 0, #150
+        "epochs": 150, #150
         "lr": 0.0001,
-        "warm_start_epochs": 0
+        "warm_start_epochs": 20
     },
     
     # Polynomial Regression (Degree 2)
     "Polynomial": {
-        "epochs": 0,       # Fewer epochs because it uses Mini-batch SGD #5
+        "epochs": 5,       # Fewer epochs because it uses Mini-batch SGD #5
         "lr": 0.00001,
-        "warm_start_epochs": 0
+        "warm_start_epochs": 2
     },
     
     # XGBoost (From Scratch) - Gradient Boosting
     "XGBoost": {
-        "epochs": 0,       # Number of boosting rounds #50
+        "epochs": 50,       # Number of boosting rounds #50
         "lr": 0.1,          # Learning rate (shrinkage)
         "max_depth": 6,     # Tree depth
-        "warm_start_epochs": 0 # 20
+        "warm_start_epochs": 20 # 20
     }
 }
 
