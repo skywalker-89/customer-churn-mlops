@@ -1,0 +1,228 @@
+{
+  "timestamp": "2026-02-21T16:37:32.899974",
+  "classification": {
+    "results": [
+      {
+        "model": "Logistic Regression (scratch)",
+        "accuracy": 0.833185,
+        "precision": 0.6281604184829991,
+        "recall": 0.7284676145339652,
+        "f1_score": 0.6746057289990344,
+        "confusion_matrix": {
+          "TN": 132053,
+          "FP": 20472,
+          "FN": 12891,
+          "TP": 34584
+        },
+        "status": "OK"
+      },
+      {
+        "model": "Decision Tree (scratch)",
+        "accuracy": 0.84124,
+        "precision": 0.694144666979478,
+        "recall": 0.5920589784096894,
+        "f1_score": 0.6390505638413968,
+        "confusion_matrix": {
+          "TN": 140140,
+          "FP": 12385,
+          "FN": 19367,
+          "TP": 28108
+        },
+        "status": "OK"
+      },
+      {
+        "model": "Random Forest (scratch)",
+        "accuracy": 0.84314,
+        "precision": 0.6964403347402836,
+        "recall": 0.6012638230647709,
+        "f1_score": 0.6453618502859986,
+        "confusion_matrix": {
+          "TN": 140083,
+          "FP": 12442,
+          "FN": 18930,
+          "TP": 28545
+        },
+        "status": "OK"
+      },
+      {
+        "model": "SVM (scratch)",
+        "accuracy": 0.757485,
+        "precision": 0.49407888673854944,
+        "recall": 0.9034228541337546,
+        "f1_score": 0.638800145960397,
+        "confusion_matrix": {
+          "TN": 108607,
+          "FP": 43918,
+          "FN": 4585,
+          "TP": 42890
+        },
+        "status": "OK"
+      },
+      {
+        "model": "Random Forest + PCA (scratch)",
+        "accuracy": 0.84296,
+        "precision": 0.696173475617201,
+        "recall": 0.6005055292259084,
+        "f1_score": 0.6448103498970891,
+        "confusion_matrix": {
+          "TN": 140083,
+          "FP": 12442,
+          "FN": 18966,
+          "TP": 28509
+        },
+        "status": "OK"
+      },
+      {
+        "model": "SVM + PCA (scratch)",
+        "accuracy": 0.757485,
+        "precision": 0.4940798415148234,
+        "recall": 0.9035703001579779,
+        "f1_score": 0.6388377998019316,
+        "confusion_matrix": {
+          "TN": 108600,
+          "FP": 43925,
+          "FN": 4578,
+          "TP": 42897
+        },
+        "status": "OK"
+      },
+      {
+        "model": "K-Means Clustering (scratch)",
+        "accuracy": 0.640985,
+        "precision": 0.24159833453711177,
+        "recall": 0.23955766192733016,
+        "f1_score": 0.24057367079503747,
+        "confusion_matrix": {
+          "TN": 116824,
+          "FP": 35701,
+          "FN": 36102,
+          "TP": 11373
+        },
+        "status": "OK"
+      },
+      {
+        "model": "Agglomerative Clustering (scratch)",
+        "accuracy": 0.82496,
+        "precision": 0.6036480936465972,
+        "recall": 0.7646972090573987,
+        "f1_score": 0.6746952126077908,
+        "confusion_matrix": {
+          "TN": 128688,
+          "FP": 23837,
+          "FN": 11171,
+          "TP": 36304
+        },
+        "status": "OK"
+      },
+      {
+        "model": "Perceptron (scratch)",
+        "accuracy": 0.781965,
+        "precision": 0.5421203937625229,
+        "recall": 0.5243180621379674,
+        "f1_score": 0.5330706384983563,
+        "confusion_matrix": {
+          "TN": 131501,
+          "FP": 21024,
+          "FN": 22583,
+          "TP": 24892
+        },
+        "status": "OK"
+      },
+      {
+        "model": "MLP (scratch)",
+        "accuracy": 0.82701,
+        "precision": 0.6100805279625229,
+        "recall": 0.7516166403370195,
+        "f1_score": 0.6734928843758258,
+        "confusion_matrix": {
+          "TN": 129719,
+          "FP": 22806,
+          "FN": 11792,
+          "TP": 35683
+        },
+        "status": "OK"
+      },
+      {
+        "model": "Custom Model (scratch)",
+        "accuracy": 0.82452,
+        "precision": 0.6024429401347259,
+        "recall": 0.766698262243286,
+        "f1_score": 0.674717778560439,
+        "confusion_matrix": {
+          "TN": 128505,
+          "FP": 24020,
+          "FN": 11076,
+          "TP": 36399
+        },
+        "status": "OK"
+      },
+      {
+        "model": "Random Forest (sklearn)",
+        "accuracy": 0.843105,
+        "precision": 0.6943585780525502,
+        "recall": 0.6056240126382306,
+        "f1_score": 0.6469628612895605,
+        "confusion_matrix": {
+          "TN": 139869,
+          "FP": 12656,
+          "FN": 18723,
+          "TP": 28752
+        },
+        "status": "OK"
+      }
+    ],
+    "models_evaluated": 12,
+    "models_failed": 0,
+    "best_model": "Logistic Regression (scratch)",
+    "best_f1": 0.674717778560439
+  },
+  "regression": {
+    "results": [
+      {
+        "model": "Linear Regression (scratch)",
+        "rmse": 1248.7736271318943,
+        "mae": 984.9289450743261,
+        "r2": 0.4133780031215829,
+        "mape": 368.9006230843698,
+        "status": "OK"
+      },
+      {
+        "model": "Multiple Regression (scratch)",
+        "rmse": 1546.7819046803565,
+        "mae": 1235.6501945505195,
+        "r2": 0.09998639832078904,
+        "mape": 463.0084812565217,
+        "status": "OK"
+      },
+      {
+        "model": "Polynomial Regression (scratch)",
+        "rmse": 825.4531550092365,
+        "mae": 620.3722418207853,
+        "r2": 0.7436839681228804,
+        "mape": 176.79831442550952,
+        "status": "OK"
+      },
+      {
+        "model": "XGBoost (scratch)",
+        "rmse": 119.85779320480661,
+        "mae": 89.4052490793585,
+        "r2": 0.9945958989404504,
+        "mape": 20.236196647682878,
+        "status": "OK"
+      },
+      {
+        "model": "XGBoost (sklearn)",
+        "rmse": 54.75579219640027,
+        "mae": 34.637227761364045,
+        "r2": 0.9988721507875371,
+        "mape": 4.464711850056462,
+        "status": "OK"
+      }
+    ],
+    "models_evaluated": 5,
+    "models_failed": 0,
+    "best_model": "Linear Regression (scratch)",
+    "best_r2": 0.9988721507875371
+  },
+  "total_models_evaluated": 17
+}
