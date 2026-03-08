@@ -1,6 +1,6 @@
 # Customer Churn MLOps Project
 
-A complete MLOps pipeline for predicting customer churn using both regression (total sales prediction) and classification (churn prediction) models. Features automated data ingestion, feature engineering, model training with from-scratch implementations, and experiment tracking.
+A full MLOps pipeline for predicting customer churn and total sales on a large-scale retail dataset (~1M rows, 47 features). Features automated data ingestion, feature engineering, from-scratch ML algorithm implementations, and experiment tracking.
 
 ---
 
@@ -8,9 +8,9 @@ A complete MLOps pipeline for predicting customer churn using both regression (t
 
 This project implements a machine learning operations (MLOps) pipeline for retail customer analytics:
 
-- **Regression Models**: Predict customer lifetime value (`total_sales`)
-- **Classification Models**: Predict customer churn (`churned` - whether customers will leave)
-- **From-Scratch Implementations**: Custom ML algorithms built without sklearn
+- **Regression Models**: Predict `total_sales` (customer purchase amount)
+- **Classification Models**: Predict `churned` (whether a customer will churn)
+- **From-Scratch Implementations**: Custom ML algorithms built using only NumPy — no sklearn for training
 - **Production-Ready Infrastructure**: Airflow orchestration, MinIO storage, MLflow tracking
 
 ---
@@ -20,7 +20,7 @@ This project implements a machine learning operations (MLOps) pipeline for retai
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Raw Data      │────▶│  Feature Eng.   │────▶│  Model Training │
-│   (CSV files)   │     │  (Airflow DAG)  │     │  (Benchmarks)   │
+│ retail_data.csv │     │  (Airflow DAG)  │     │  (Benchmarks)   │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
          │                       │                        │
          ▼                       ▼                        ▼
@@ -44,6 +44,7 @@ This project implements a machine learning operations (MLOps) pipeline for retai
 - **Docker** & **Docker Compose** installed
 - **8GB+ RAM** recommended
 - **10GB+ disk space**
+- `data/raw/retail_data.csv` placed in the project root (not included in repo due to size)
 
 ---
 
@@ -52,15 +53,24 @@ This project implements a machine learning operations (MLOps) pipeline for retai
 ### **1. Clone and Setup**
 
 ```bash
-# Clone the repository
 git clone https://github.com/skywalker-89/customer-churn-mlops.git
 cd customer-churn-mlops
 
 # Create required directories
-mkdir -p logs dags plugins data
+mkdir -p logs dags plugins data/raw
 ```
 
-### **2. Start Infrastructure**
+### **2. Add the Dataset**
+
+Place `retail_data.csv` inside `data/raw/`:
+
+```
+data/
+└── raw/
+    └── retail_data.csv   ← ~1M rows, 47 columns
+```
+
+### **3. Start Infrastructure**
 
 ```bash
 # Start all services
@@ -68,116 +78,107 @@ docker-compose up -d
 
 # Check service health
 docker-compose ps
-
-# You should see all services running:
-# - airflow-webserver
-# - airflow-scheduler
-# - airflow-worker
-# - postgres
-# - redis
-# - minio
-# - mlflow
 ```
 
-### **3. Access Services**
+You should see all services running:
+- `airflow-webserver`, `airflow-scheduler`, `airflow-worker`
+- `postgres`, `redis`
+- `minio`, `mlflow`
 
-Once all containers are running:
+### **4. Access Services**
 
 | Service | URL | Username | Password |
 |---------|-----|----------|----------|
 | **Airflow** | http://localhost:8080 | `airflow` | `airflow` |
 | **MinIO** | http://localhost:9001 | `minio_admin` | `minio_password` |
-| **MLflow** | http://localhost:5001 | - | - |
+| **MLflow** | http://localhost:5001 | — | — |
 
 ---
 
-## 📊 Running the Data Pipeline
+## 📊 Running the Pipeline
 
-### **Step 1: Data Ingestion (Run Once)**
+### **Step 1: Data Ingestion**
 
-Loads raw CSV files from `data/Toy_Store/` into MinIO.
+Reads `data/raw/retail_data.csv` and uploads it to MinIO as a Parquet file.
+
+**DAG:** `retail_data_ingestion_pipeline`
 
 **Via Airflow UI:**
-1. Go to http://localhost:8080
-2. Login with `airflow` / `airflow`
-3. Find DAG: **`retail_data_ingestion_pipeline`**
-4. Click the **▶️ Play** button (Trigger DAG)
-5. Wait for completion (should turn green)
+1. Go to http://localhost:8080 → Login with `airflow` / `airflow`
+2. Find DAG: **`retail_data_ingestion_pipeline`**
+3. Click **▶️ Trigger DAG**
 
-**Via Command Line:**
+**Via CLI:**
 ```bash
-# Trigger the DAG
 docker exec -it customer-churn-mlops-airflow-scheduler-1 \
   airflow dags trigger retail_data_ingestion_pipeline
-
-# Check status
-docker exec -it customer-churn-mlops-airflow-scheduler-1 \
-  airflow dags list-runs -d retail_data_ingestion_pipeline
 ```
 
 **What it does:**
-- Reads all CSV files from `data/Toy_Store/`
-- Uploads to MinIO bucket: `raw-data`
-- Validates data integrity
+- Reads `retail_data.csv` (~1M rows)
+- Converts to Parquet and uploads to MinIO bucket: `raw-data`
 
 ---
 
-### **Step 2: Feature Engineering (Run Once)**
+### **Step 2: Feature Engineering**
 
-Processes raw data and creates ML-ready features.
+Processes raw data and produces the final ML-ready training dataset.
+
+**DAG:** `retail_feature_engineering_pipeline`
 
 **Via Airflow UI:**
-1. Go to http://localhost:8080
-2. Find DAG: **`retail_feature_engineering_pipeline`**
-3. Click the **▶️ Play** button (Trigger DAG)
-4. Wait for completion (should turn green)
+1. Find DAG: **`retail_feature_engineering_pipeline`**
+2. Click **▶️ Trigger DAG**
 
-**Via Command Line:**
+**Via CLI:**
 ```bash
-# Trigger the DAG
 docker exec -it customer-churn-mlops-airflow-scheduler-1 \
   airflow dags trigger retail_feature_engineering_pipeline
-
-# Check status
-docker exec -it customer-churn-mlops-airflow-scheduler-1 \
-  airflow dags list-runs -d retail_feature_engineering_pipeline
 ```
 
 **What it does:**
-- Loads raw data from MinIO
-- Creates engineered features:
-  - Interaction features (`quantity * unit_price`)
-  - Aggregations (total purchases, avg order value)
-  - Recency/frequency metrics
-  - Category encodings
-- Creates target variables:
-  - `total_sales` (regression target)
-  - `churned` (classification target)
-- Saves to MinIO bucket: `processed-data/training_data.parquet`
+- Loads `retail_data.parquet` from MinIO
+- Drops ID columns (`customer_id`, `transaction_id`, etc.)
+- One-hot encodes 27 categorical variables
+- Creates derived features:
+  - `quantity_times_price` — interaction feature
+  - `engagement_score` — app + social media usage
+  - `recency_ratio` — days since last purchase / 365
+  - `online_preference` — online vs in-store purchase ratio
+- Synthesizes targets:
+  - `total_sales` = `quantity × unit_price × (1 − discount) + noise`
+  - `churned` = derived from recency and purchase frequency
+- Saves to MinIO: `processed-data/training_data.parquet`
+- Auto-triggers the **Data Quality DAG** on completion
 
 ---
 
-### **Step 3: Model Training (Automated Hourly)**
+### **Step 3: Model Training**
 
-The model training DAG runs automatically every hour or can be triggered manually.
+Runs regression and classification benchmarks in parallel.
+
+**DAG:** `model_training_pipeline` (runs weekly or trigger manually)
 
 **Via Airflow UI:**
 1. Find DAG: **`model_training_pipeline`**
-2. Click **▶️ Play** to trigger manually
+2. Click **▶️ Trigger DAG**
 
 **What it does:**
-- Validates training data exists
-- Runs regression benchmark (your work):
-  - Linear Regression (from scratch)
-  - Multiple Regression (from scratch)
-  - Polynomial Regression (from scratch)
-  - XGBoost (from scratch)
-  - XGBoost (sklearn) for comparison
-- Runs classification benchmark (your friend's work):
-  - 11 from-scratch classification models
-  - 1 sklearn model for comparison
-- Saves all models to MinIO bucket: `models`
-- Logs metrics to MLflow
+1. Validates `training_data.parquet` exists in MinIO
+2. **Regression benchmark** — trains 4 from-scratch models + 1 sklearn baseline:
+   - Linear Regression (gradient descent)
+   - Multiple Regression (gradient descent)
+   - Polynomial Regression (degree 2, mini-batch SGD)
+   - XGBoost (from scratch, gradient boosting)
+   - XGBoost (sklearn, for comparison)
+3. **Classification benchmark** — trains 11 from-scratch models + 1 sklearn baseline:
+   - Logistic Regression, Decision Tree, Random Forest
+   - SVM, Random Forest + PCA, SVM + PCA
+   - K-Means Clustering, Agglomerative Clustering
+   - Perceptron, MLP, Custom Model
+   - Random Forest Classifier (sklearn, for comparison)
+4. Saves all trained models to MinIO bucket: `models`
+5. Logs all metrics to MLflow
 
 ---
 
@@ -185,33 +186,47 @@ The model training DAG runs automatically every hour or can be triggered manuall
 
 ```
 customer-churn-mlops/
-├── dags/                              # Airflow DAGs
-│   ├── retail_ingestion_dag.py        # Data ingestion
-│   ├── retail_feature_engineering_dag.py  # Feature engineering
-│   ├── model_training_dag.py          # Model training orchestration
-│   └── data_quality_dag.py            # Data validation
+├── dags/                                    # Airflow DAGs
+│   ├── retail_ingestion_dag.py              # Data ingestion
+│   ├── retail_feature_engineering_dag.py    # Feature engineering
+│   ├── model_training_dag.py                # Training orchestration
+│   ├── model_evaluation_dag.py              # Model evaluation & comparison
+│   └── data_quality_dag.py                  # Data validation
 │
-├── src/                               # Source code
-│   ├── models_scratch/                # From-scratch ML implementations
-│   │   ├── base.py                    # Base model class
-│   │   ├── linear_regression.py       # Linear regression
-│   │   ├── polynomial_regression.py   # Polynomial regression
-│   │   ├── xgboost.py                 # XGBoost from scratch
-│   │   └── ...                        # More models
+├── src/                                     # Source code
+│   ├── models_scratch/                      # From-scratch ML implementations
+│   │   ├── base.py                          # BaseModel class
+│   │   ├── linear_regression.py
+│   │   ├── multiple_regression.py
+│   │   ├── polynomial_regression.py
+│   │   ├── xgboost.py
+│   │   ├── logistic_regression.py
+│   │   ├── decision_tree.py
+│   │   ├── random_forest.py
+│   │   ├── svm.py
+│   │   ├── random_forest_pca.py
+│   │   ├── svm_pca.py
+│   │   ├── pca.py
+│   │   ├── kmeans_clustering.py
+│   │   ├── agglomerative_clustering.py
+│   │   ├── perceptron.py
+│   │   ├── mlp.py
+│   │   └── custom_model.py
 │   │
 │   ├── regression/
-│   │   └── retail_regression_benchmark.py  # Regression model benchmark
+│   │   └── retail_regression_benchmark.py   # Regression benchmark runner
 │   │
 │   └── classification/
-│       └── retail_classification_benchmark.py  # Classification model benchmark
+│       └── retail_classification_benchmark.py  # Classification benchmark runner
 │
-├── data/                              # Raw data directory
-│   └── Toy_Store/                     # Raw CSV files
+├── data/
+│   └── raw/
+│       └── retail_data.csv                  # ~1M rows, 47 features (not in repo)
 │
-├── docker-compose.yaml                # Infrastructure definition
-├── requirements.txt                   # Python dependencies
-├── CLASSIFICATION_HANDOFF.md          # Instructions for classification team
-└── README.md                          # This file
+├── docker-compose.yaml                      # Infrastructure definition
+├── requirements.txt                         # Python dependencies
+├── CLASSIFICATION_HANDOFF.md                # Instructions for classification team
+└── README.md                                # This file
 ```
 
 ---
@@ -220,32 +235,30 @@ customer-churn-mlops/
 
 ### **Environment Variables**
 
-Set these in `.env` file (optional):
+Set in `.env` (optional, defaults shown):
 
 ```bash
 AIRFLOW_UID=50000
 AIRFLOW_IMAGE_NAME=apache/airflow:2.10.4
 
-# MinIO credentials
 MINIO_ROOT_USER=minio_admin
 MINIO_ROOT_PASSWORD=minio_password
 
-# Airflow credentials
 _AIRFLOW_WWW_USER_USERNAME=airflow
 _AIRFLOW_WWW_USER_PASSWORD=airflow
 ```
 
 ### **MinIO Buckets**
 
-The DAGs automatically create these buckets:
-- `raw-data` - Raw CSV files
-- `processed-data` - Feature-engineered data
-- `models` - Trained model artifacts
-- `mlflow` - MLflow artifacts
+DAGs auto-create these buckets:
+- `raw-data` — Raw Parquet from CSV ingestion
+- `processed-data` — Feature-engineered training data
+- `models` — Trained model `.pkl` files
+- `mlflow` — MLflow artifacts
 
 ---
 
-## 🧪 Monitoring and Debugging
+## 🧪 Monitoring & Debugging
 
 ### **Check DAG Status**
 
@@ -254,7 +267,7 @@ The DAGs automatically create these buckets:
 docker exec -it customer-churn-mlops-airflow-scheduler-1 \
   airflow dags list
 
-# View last 5 runs of a DAG
+# View recent runs
 docker exec -it customer-churn-mlops-airflow-scheduler-1 \
   airflow dags list-runs -d retail_data_ingestion_pipeline --limit 5
 ```
@@ -262,32 +275,29 @@ docker exec -it customer-churn-mlops-airflow-scheduler-1 \
 ### **View Logs**
 
 ```bash
-# Airflow scheduler logs
+# Scheduler logs
 docker logs customer-churn-mlops-airflow-scheduler-1 -f
 
-# Airflow worker logs
+# Worker logs
 docker logs customer-churn-mlops-airflow-worker-1 -f
 
-# Specific task logs (via Airflow UI)
-# Go to http://localhost:8080 → DAGs → Click DAG → Click Task → View Logs
+# Per-task logs: Airflow UI → DAGs → Click DAG → Click Task → View Logs
 ```
 
-### **Check MinIO Data**
+### **Check MinIO**
 
-1. Go to http://localhost:9001
-2. Login: `minio_admin` / `minio_password`
-3. Browse buckets:
-   - `raw-data` → See uploaded CSV files
-   - `processed-data` → See `training_data.parquet`
-   - `models` → See trained model `.pkl` files
+1. Go to http://localhost:9001 → Login: `minio_admin` / `minio_password`
+2. Browse:
+   - `raw-data` → `retail_data.parquet`
+   - `processed-data` → `training_data.parquet`
+   - `models` → trained `.pkl` files
 
 ### **View MLflow Experiments**
 
 1. Go to http://localhost:5001
-2. Browse experiments:
-   - `retail_regression_benchmark` - Regression model metrics
-   - `retail_classification_benchmark` - Classification model metrics
-3. Compare model performance, view metrics, download artifacts
+2. Experiments:
+   - `retail_regression_benchmark` — RMSE, MAE, R², MAPE per model
+   - `retail_classification_benchmark` — Accuracy, Precision, Recall, F1 per model
 
 ---
 
@@ -296,93 +306,66 @@ docker logs customer-churn-mlops-airflow-worker-1 -f
 ### **Services Not Starting**
 
 ```bash
-# Check service status
 docker-compose ps
-
-# Restart all services
 docker-compose restart
 
 # Full reset (WARNING: deletes all data)
-docker-compose down -v
-docker-compose up -d
+docker-compose down -v && docker-compose up -d
 ```
 
 ### **DAG Not Appearing in Airflow**
 
 ```bash
-# Refresh DAGs
 docker exec -it customer-churn-mlops-airflow-scheduler-1 \
   airflow dags list-import-errors
-
-# Check syntax errors
-docker exec -it customer-churn-mlops-airflow-scheduler-1 \
-  python /opt/airflow/dags/retail_ingestion_dag.py
 ```
 
 ### **Out of Memory**
 
-If containers crash due to memory:
-1. Increase Docker Desktop memory limit (8GB+ recommended)
-2. Reduce dataset size in feature engineering DAG
-3. Reduce number of parallel workers
+- Increase Docker Desktop memory to 8GB+
+- Reduce `sample_size` in the benchmark scripts' `load_retail_data()` call
 
 ### **Permission Errors**
 
 ```bash
-# Fix Airflow permissions
+# Fix Airflow file permissions
 sudo chown -R 50000:0 logs/ dags/ plugins/
 
-# Or set AIRFLOW_UID
+# Or set AIRFLOW_UID to your user
 echo "AIRFLOW_UID=$(id -u)" > .env
-docker-compose down
-docker-compose up -d
+docker-compose down && docker-compose up -d
 ```
 
 ---
 
-## 📚 Additional Resources
+## 🤝 Team Structure
 
-### **For Classification Team**
-- Read: `CLASSIFICATION_HANDOFF.md`
-- Implement 11 from-scratch classification models
-- Run benchmark and send trained models
-
-### **Key Concepts**
-- **Churn**: When a customer stops doing business with the company
-- **From-Scratch Models**: ML algorithms implemented without sklearn (use only NumPy)
-- **Warm Start**: Continue training from existing model (incremental learning)
-
----
-
-## 🤝 Contributing
-
-### **Team Structure**
-- **Lead Engineer (Regression)**: Implements 4 from-scratch regression models
-- **ML Engineer (Classification)**: Implements 11 from-scratch classification models
+| Role | Responsibility |
+|------|---------------|
+| **Lead Engineer (Regression)** | 4 from-scratch regression models + pipeline orchestration |
+| **ML Engineer (Classification)** | 11 from-scratch classification models |
 
 ### **Development Workflow**
-1. Build models in `src/models_scratch/`
-2. Inherit from `BaseModel` class
+
+1. Implement your model in `src/models_scratch/` inheriting from `BaseModel`
+2. Register it in the corresponding benchmark script
 3. Test locally: `python -m src.regression.retail_regression_benchmark`
-4. Run via Airflow DAG
-5. Download trained models from MinIO
-6. Share models with team
+4. Run via the Airflow DAG — models auto-save to and load from MinIO (warm start)
 
 ---
 
 ## 📄 License
 
-MIT License - See LICENSE file for details
+MIT License — See [LICENSE](LICENSE) for details.
 
 ---
 
 ## 🎓 University Project
 
-This project is part of a machine learning course assignment demonstrating:
-- End-to-end MLOps pipeline
-- From-scratch ML algorithm implementations
-- Fair comparison between custom and library models
-- Production-ready infrastructure
-- Automated workflow orchestration
+This project is part of a machine learning course demonstrating:
+- End-to-end MLOps pipeline on a real-scale retail dataset
+- From-scratch ML algorithm implementations (NumPy only)
+- Fair benchmarking between custom and library models
+- Production-ready infrastructure with Docker, Airflow, MinIO, and MLflow
 
 **Built with ❤️ for learning and experimentation**
